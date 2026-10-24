@@ -1,0 +1,81 @@
+name: Submit a working paper
+description: Submit a paper to the Newcastle Economics Discussion Papers. The editor reviews it, then it is published on RePEc and passed to Marketing & Communication.
+title: "[WP] <paper title>"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill in the details exactly as they should appear on RePEc (IDEAS and EconPapers) and on the university website. A preview of the RePEc record will be posted below your submission within a minute; you can edit this form afterwards to correct anything.
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: "Fiscal anticipation and inequality: the role of the monetary-fiscal mix"
+    validations:
+      required: true
+  - type: textarea
+    id: authors
+    attributes:
+      label: Authors
+      description: One author per line, in the order they appear on the paper. Format "Surname, First names; e-mail; affiliation; RePEc Short-ID". E-mail, affiliation and Short-ID are optional but please give at least the affiliation.
+      placeholder: |
+        Dhamija, Vedanta; vedantadhamija@outlook.com; Centre for Macroeconomics
+        Fusari, Francesco; francesco.fusari@newcastle.ac.uk; Newcastle University Business School; pfu123
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: abstract
+    attributes:
+      label: Abstract
+      description: Plain text, no LaTeX.
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: Year and month, YYYY-MM.
+      placeholder: "2026-10"
+    validations:
+      required: true
+  - type: input
+    id: jel
+    attributes:
+      label: JEL codes
+      description: Comma-separated. https://www.aeaweb.org/econlit/jelCodes.php
+      placeholder: "C32, E21, E62"
+  - type: input
+    id: keywords
+    attributes:
+      label: Keywords
+      description: Comma-separated.
+      placeholder: "fiscal policy, news shocks, consumption inequality"
+  - type: input
+    id: pages
+    attributes:
+      label: Number of pages
+      placeholder: "35"
+  - type: textarea
+    id: pdf
+    attributes:
+      label: Paper PDF
+      description: Drag and drop the PDF into this box (or click to attach). Upload the paper without a cover page; the series cover is added automatically. Maximum 25 MB.
+      placeholder: Drop the PDF file here.
+    validations:
+      required: true
+  - type: input
+    id: number
+    attributes:
+      label: Paper number
+      description: Leave blank; the editor assigns the next free number (e.g. 2026-02).
+  - type: input
+    id: contact
+    attributes:
+      label: Contact e-mail
+      description: Where the Marketing & Communication team can reach you with questions.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the editor

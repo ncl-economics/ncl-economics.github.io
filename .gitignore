@@ -1,5 +1,4 @@
-data/
-.env
 __pycache__/
 *.pyc
 .pytest_cache/
+*.cover.png
