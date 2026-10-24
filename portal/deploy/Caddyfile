@@ -1,0 +1,6 @@
+{$PORTAL_DOMAIN} {
+    reverse_proxy portal:8000
+    request_body {
+        max_size 60MB
+    }
+}

@@ -61,8 +61,12 @@ class Settings:
     def from_env(cls) -> "Settings":
         e = os.environ.get
         d = cls()
+        # Hosting platforms announce the public address; use it unless BASE_URL is set.
+        base_url = (e("BASE_URL") or e("RENDER_EXTERNAL_URL")
+                    or (f"https://{e('FLY_APP_NAME')}.fly.dev" if e("FLY_APP_NAME") else "")
+                    or d.base_url)
         return cls(
-            base_url=e("BASE_URL", d.base_url).rstrip("/"),
+            base_url=base_url.rstrip("/"),
             secret_key=e("SECRET_KEY", d.secret_key),
             data_dir=Path(e("DATA_DIR", str(d.data_dir))),
             submit_code=e("SUBMIT_CODE", ""),
