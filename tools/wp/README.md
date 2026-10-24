@@ -64,7 +64,7 @@ IT gives it a licence; a plain shared mailbox cannot own forms).
 
 **The form** (forms.office.com → New form → "Newcastle Economics Discussion
 Papers: submit a paper"). Settings: *Only people in my organization can
-respond*, *Record name*. Seven questions:
+respond*, *Record name*. Six questions:
 
 | # | Question | Type |
 |---|---|---|
@@ -74,13 +74,12 @@ respond*, *Record name*. Seven questions:
 | 4 | Affiliations | Text, Long answer, required. Subtitle: "One per line, same order as the names; one line if it is the same for everyone" |
 | 5 | Abstract | Text, Long answer, required |
 | 6 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; it is added automatically" |
-| 7 | JEL codes | Text, optional |
 
 Everything else is filled in automatically: the date is the month of
 submission, the page count comes from the PDF, the number is the next free
-one, and the responder's university e-mail is the contact. Keywords, a
-different date or RePEc Short-IDs can be added by the editor on the issue
-when wanted.
+one, and the responder's university e-mail is the contact. JEL codes,
+keywords, a different date or RePEc Short-IDs can be added by the editor on
+the issue before approving (add a `### JEL codes` section and the codes).
 
 **The flow** (make.powerautomate.com → Create → Automated cloud flow). Every
 action below is a *Standard* connector, included in Microsoft 365.
@@ -124,10 +123,6 @@ action below is a *Standard* connector, included in Microsoft 365.
    ### Abstract
 
    <Abstract>
-
-   ### JEL codes
-
-   <JEL codes>
 
    ### Paper PDF
 
