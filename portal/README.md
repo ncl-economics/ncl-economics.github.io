@@ -122,6 +122,9 @@ SendGrid) also expose SMTP credentials and are simpler to set up.
 
 ## Deploy
 
+**Step-by-step instructions for Render, Fly.io and a university VM are in
+[DEPLOY.md](DEPLOY.md).** In short:
+
 The app is a single process with a SQLite database and an uploads folder under
 `DATA_DIR`, so it needs one persistent volume. Any of these works:
 
