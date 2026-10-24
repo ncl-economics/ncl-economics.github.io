@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ sub.status|capitalize }}{% endblock %}
+{% block content %}
+{% if sub.status == 'approved' %}
+<h1>Published</h1>
+<div class="card">
+<p><strong>{{ sub.title }}</strong> is now number <code>{{ sub.number }}</code>.</p>
+<ul>
+  <li>Commit: <a href="{{ sub.commit_url }}">{{ sub.commit_url }}</a></li>
+  <li>PDF: <a href="{{ settings.pdf_url(sub.number) }}">{{ settings.pdf_url(sub.number) }}</a> (live once GitHub Pages rebuilds, about a minute)</li>
+  <li>IDEAS: <a href="{{ settings.ideas_url(sub.number) }}">{{ settings.ideas_url(sub.number) }}</a> (after the next mirroring run)</li>
+  <li>EconPapers: <a href="{{ settings.econpapers_url(sub.number) }}">{{ settings.econpapers_url(sub.number) }}</a></li>
+</ul>
+<p>The Marketing &amp; Communication team ({{ settings.marketing_emails|join(', ') }}) and the submitter have been e-mailed.</p>
+</div>
+{% else %}
+<h1>Rejected</h1>
+<div class="card"><p>The submitter has been informed.</p></div>
+{% endif %}
+<p><a href="/admin">Back to all submissions</a></p>
+{% endblock %}

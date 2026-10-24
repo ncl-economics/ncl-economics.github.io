@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Submission received{% endblock %}
+{% block content %}
+<h1>Thank you</h1>
+<div class="card">
+<p><strong>{{ sub.title }}</strong> by {{ sub.author_names }} has been received.</p>
+<p>The series editor has been notified and will review it. You will receive an e-mail at <code>{{ sub.submitter_email }}</code> once the paper is published, or if anything needs changing.</p>
+<p><a href="/">Submit another paper</a></p>
+</div>
+{% endblock %}
