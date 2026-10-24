@@ -64,22 +64,23 @@ IT gives it a licence; a plain shared mailbox cannot own forms).
 
 **The form** (forms.office.com → New form → "Newcastle Economics Discussion
 Papers: submit a paper"). Settings: *Only people in my organization can
-respond*, *Record name*. Five questions:
+respond*, *Record name*. Seven questions:
 
 | # | Question | Type |
 |---|---|---|
 | 1 | Title | Text, required |
-| 2 | Authors | Text, **Long answer**, required. Subtitle: "One author per line: Surname, First names; affiliation" |
-| 3 | Abstract | Text, Long answer, required |
-| 4 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; it is added automatically" |
-| 5 | JEL codes | Text, optional |
+| 2 | Author names | Text, **Long answer**, required. Subtitle: "One per line, in the order on the paper: Surname, First names" |
+| 3 | Author e-mails | Text, Long answer. Subtitle: "One per line, same order as the names (leave a line blank to skip an author)" |
+| 4 | Affiliations | Text, Long answer, required. Subtitle: "One per line, same order as the names; one line if it is the same for everyone" |
+| 5 | Abstract | Text, Long answer, required |
+| 6 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; it is added automatically" |
+| 7 | JEL codes | Text, optional |
 
 Everything else is filled in automatically: the date is the month of
 submission, the page count comes from the PDF, the number is the next free
 one, and the responder's university e-mail is the contact. Keywords, a
-different date, e-mails or RePEc Short-IDs can be added by the editor on the
-issue when wanted (an author line also accepts `; e-mail; Short-ID` in any
-order).
+different date or RePEc Short-IDs can be added by the editor on the issue
+when wanted.
 
 **The flow** (make.powerautomate.com → Create → Automated cloud flow). Every
 action below is a *Standard* connector, included in Microsoft 365.
@@ -108,9 +109,17 @@ action below is a *Standard* connector, included in Microsoft 365.
 
    <Title>
 
-   ### Authors
+   ### Author names
 
-   <Authors>
+   <Author names>
+
+   ### Author e-mails
+
+   <Author e-mails>
+
+   ### Affiliations
+
+   <Affiliations>
 
    ### Abstract
 

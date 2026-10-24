@@ -10,6 +10,9 @@ from .redif import Author, clean
 FIELDS = {
     "Title": "title",
     "Authors": "authors",
+    "Author names": "author_names",
+    "Author e-mails": "author_emails",
+    "Affiliations": "affiliations",
     "Abstract": "abstract",
     "Date": "date",
     "JEL codes": "jel",
@@ -111,6 +114,44 @@ def parse_authors(text: str) -> tuple[list[Author], list[str]]:
     return authors, errors
 
 
+def _lines(text: str) -> list[str]:
+    return [ln.strip().strip("-").strip() for ln in (text or "").splitlines()]
+
+
+def parse_author_boxes(names: str, emails: str, affiliations: str) -> tuple[list[Author], list[str]]:
+    """Three boxes, one line per author in the same order (the Microsoft Forms layout).
+
+    Blank lines are allowed in the e-mail and affiliation boxes. A single
+    affiliation line applies to every author.
+    """
+    name_lines = [n for n in _lines(names) if n]
+    email_lines = _lines(emails)
+    aff_lines = _lines(affiliations)
+    if len([a for a in aff_lines if a]) == 1 and len(name_lines) > 1:
+        aff_lines = [next(a for a in aff_lines if a)] * len(name_lines)
+    authors, errors = [], []
+    for i, name in enumerate(name_lines):
+        if "," in name:
+            last, first = [clean(x) for x in name.split(",", 1)]
+        else:
+            errors.append(f"Author '{name}': write the name as 'Surname, First names'.")
+            parts = name.split()
+            last, first = (parts[-1], " ".join(parts[:-1])) if len(parts) > 1 else (name, "")
+        email = email_lines[i] if i < len(email_lines) else ""
+        if email and not _EMAIL_RE.match(email):
+            errors.append(f"Author '{name}': '{email}' is not an e-mail address.")
+            email = ""
+        workplace = clean(aff_lines[i]) if i < len(aff_lines) else ""
+        authors.append(Author(first=first, last=last, email=email, workplace=workplace))
+    if not authors:
+        errors.append("At least one author is required.")
+    if len([e for e in email_lines if e]) > len(name_lines):
+        errors.append("There are more e-mail lines than author names; keep one line per author.")
+    if len([a for a in aff_lines if a]) > len(name_lines):
+        errors.append("There are more affiliation lines than author names; keep one line per author.")
+    return authors, errors
+
+
 @dataclass
 class Submission:
     title: str = ""
@@ -144,7 +185,11 @@ def parse_submission(body: str, default_date: str = "") -> Submission:
     s.title = clean(f.get("title", ""))
     if not s.title:
         s.errors.append("The title is required.")
-    s.authors, author_errors = parse_authors(f.get("authors", ""))
+    if f.get("author_names", "").strip():
+        s.authors, author_errors = parse_author_boxes(
+            f.get("author_names", ""), f.get("author_emails", ""), f.get("affiliations", ""))
+    else:
+        s.authors, author_errors = parse_authors(f.get("authors", ""))
     s.errors += author_errors
     s.abstract = f.get("abstract", "").strip()
     if len(clean(s.abstract)) < 50:

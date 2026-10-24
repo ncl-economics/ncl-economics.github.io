@@ -105,3 +105,57 @@ def test_minimal_form_defaults_the_date():
     assert s.pages is None and s.jel == "" and s.contact == ""
     s2 = parse_submission(MINIMAL_BODY)
     assert any("YYYY-MM" in e for e in s2.errors)
+
+
+THREE_BOX_BODY = """### Title
+
+Fiscal anticipation and inequality
+
+### Author names
+
+Dhamija, Vedanta
+Fusari, Francesco
+Tara, Roshni
+
+### Author e-mails
+
+vedantadhamija@outlook.com
+
+roshni.tara92@gmail.com
+
+### Affiliations
+
+Centre for Macroeconomics
+Newcastle University Business School
+Centre for Macroeconomics
+
+### Abstract
+
+Fiscal policy is often anticipated before implementation, yet little is known about how fiscal foresight shapes inequality.
+
+### Paper PDF
+
+https://newcastle-my.sharepoint.com/:b:/g/personal/x/EaBc?e=1
+"""
+
+
+def test_three_author_boxes():
+    s = parse_submission(THREE_BOX_BODY, default_date="2026-10")
+    assert s.errors == []
+    assert [a.redif_name for a in s.authors] == ["Dhamija, Vedanta", "Fusari, Francesco", "Tara, Roshni"]
+    assert [a.email for a in s.authors] == ["vedantadhamija@outlook.com", "", "roshni.tara92@gmail.com"]
+    assert [a.workplace for a in s.authors] == ["Centre for Macroeconomics",
+                                                "Newcastle University Business School",
+                                                "Centre for Macroeconomics"]
+
+
+def test_three_boxes_single_affiliation_applies_to_all_and_errors():
+    from wp.issue import parse_author_boxes
+    authors, errors = parse_author_boxes("Fusari, Francesco\nTara, Roshni", "", "NUBS")
+    assert errors == [] and [a.workplace for a in authors] == ["NUBS", "NUBS"]
+    authors, errors = parse_author_boxes("Fusari, Francesco", "a@b.c\nd@e.f", "x\ny")
+    assert len(authors) == 1
+    assert any("more e-mail lines" in e for e in errors) and any("more affiliation lines" in e for e in errors)
+    authors, errors = parse_author_boxes("Francesco Fusari", "not-an-email", "")
+    assert authors[0].redif_name == "Fusari, Francesco" and authors[0].email == ""
+    assert any("Surname, First names" in e for e in errors) and any("not an e-mail" in e for e in errors)
