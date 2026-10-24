@@ -1,19 +1,13 @@
 """Build a Newcastle Economics Discussion Paper cover and prepend it to an unchanged paper PDF.
 
-Usage:
-    python3 make_cover.py PAPER.pdf OUT.pdf [LOGO.png]              # uses the PAPER dict below
-    python3 make_cover.py PAPER.pdf OUT.pdf --meta meta.json [--logo LOGO.png]
-
-meta.json (what the submission portal writes) looks like
-    {"title": "...", "authors": [["First Last", "Affiliation"], ...],
-     "number": "2026-02", "date": "October 2026"}
+Usage: python3 make_cover.py PAPER.pdf OUT.pdf [LOGO.svg|png]
+Edit the PAPER dict below for each new paper.
 """
-import argparse, base64, json, mimetypes, os
+import sys, base64, mimetypes
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import pypdf
 
-# Defaults for manual use; a --meta file overrides them.
 PAPER = dict(
     title="Fiscal anticipation and inequality: the role of the monetary-fiscal mix",
     authors=[("Vedanta Dhamija", "Centre for Macroeconomics"),
@@ -23,21 +17,9 @@ PAPER = dict(
     date="October 2026",
 )
 
-ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-ap.add_argument("src", type=Path)
-ap.add_argument("out", type=Path)
-ap.add_argument("logo_positional", nargs="?", type=Path, help=argparse.SUPPRESS)
-ap.add_argument("--meta", type=Path, help="JSON file with title/authors/number/date")
-ap.add_argument("--logo", type=Path, help="white (reversed) logo for the dark panel")
-args = ap.parse_args()
-
-src, out = args.src, args.out
-if args.meta:
-    m = json.loads(args.meta.read_text(encoding="utf-8"))
-    PAPER = dict(title=m["title"], authors=[tuple(a) for a in m["authors"]],
-                 number=m["number"], date=m["date"])
+src, out = Path(sys.argv[1]), Path(sys.argv[2])
 # White (reversed) logo, placed bottom-right on the dark part of the panel
-logo = args.logo or args.logo_positional or Path(__file__).with_name("ncl-logo-white.png")
+logo = Path(sys.argv[3]) if len(sys.argv) > 3 else Path(__file__).with_name("ncl-logo-white.png")
 
 # Page size taken from the paper so the cover matches it exactly
 r = pypdf.PdfReader(str(src))
@@ -90,8 +72,7 @@ Newcastle upon Tyne<br>NE1 4SE<br>United Kingdom</div>
 tmp = out.with_suffix(".cover.pdf")
 png = out.with_suffix(".cover.png")
 with sync_playwright() as p:
-    # CHROMIUM_PATH lets a deployment point at a system Chromium instead of Playwright's own.
-    b = p.chromium.launch(executable_path=os.environ.get("CHROMIUM_PATH") or None)
+    b = p.chromium.launch()
     pg = b.new_page(viewport={"width": round(w_pt * 4 / 3), "height": round(h_pt * 4 / 3)}, device_scale_factor=1.5)
     pg.set_content(html); pg.wait_for_timeout(300)
     pg.screenshot(path=str(png))
