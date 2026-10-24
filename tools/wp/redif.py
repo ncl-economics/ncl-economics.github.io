@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from .config import Settings
+from .config import Config
 
 
 @dataclass
@@ -42,16 +42,11 @@ class Paper:
     keywords: str = ""
     jel: str = ""
     length_pages: int | None = None
-    file_url: str = ""
     extra: dict[str, str] = field(default_factory=dict)
 
 
 def clean(text: str) -> str:
-    """Collapse all whitespace (including newlines) into single spaces.
-
-    ReDIF values may span lines only with continuation indentation; keeping
-    every value on one line is the robust choice for generated files.
-    """
+    """Collapse all whitespace (including newlines) into single spaces."""
     return re.sub(r"\s+", " ", (text or "")).strip()
 
 
@@ -66,7 +61,7 @@ def _line(key: str, value: str | None) -> list[str]:
     return [f"{key}: {value}"] if value else []
 
 
-def paper_template(paper: Paper, settings: Settings) -> str:
+def paper_template(paper: Paper, cfg: Config) -> str:
     lines: list[str] = ["Template-Type: ReDIF-Paper 1.0"]
     for a in paper.authors:
         lines += _line("Author-Name", a.redif_name)
@@ -78,51 +73,16 @@ def paper_template(paper: Paper, settings: Settings) -> str:
     if paper.length_pages:
         lines += _line("Length", f"{paper.length_pages} pages")
     lines += _line("Creation-Date", paper.creation_date)
-    file_url = paper.file_url or settings.pdf_url(paper.number)
-    lines += _line("File-URL", file_url)
+    lines += _line("File-URL", cfg.pdf_url(paper.number))
     lines += _line("File-Format", "Application/pdf")
     lines += _line("Number", paper.number)
     lines += _line("Classification-JEL", clean_list(paper.jel))
     lines += _line("Keywords", clean_list(paper.keywords))
     for k, v in paper.extra.items():
         lines += _line(k, v)
-    lines += _line("Handle", settings.paper_handle(paper.number))
+    lines += _line("Handle", cfg.paper_handle(paper.number))
     return "\n".join(lines) + "\n"
 
-
-def archive_template(settings: Settings, name: str, maintainer_name: str,
-                     maintainer_email: str, description: str = "") -> str:
-    lines = [
-        "Template-Type: ReDIF-Archive 1.0",
-        f"Handle: RePEc:{settings.archive_code}",
-        f"Name: {clean(name)}",
-        f"Maintainer-Email: {clean(maintainer_email)}",
-        f"Maintainer-Name: {clean(maintainer_name)}",
-    ]
-    if description:
-        lines.append(f"Description: {clean(description)}")
-    lines.append(f"URL: {settings.archive_url}")
-    return "\n".join(lines) + "\n"
-
-
-def series_template(settings: Settings, provider_name: str, provider_homepage: str,
-                    provider_institution: str, maintainer_name: str,
-                    maintainer_email: str) -> str:
-    lines = [
-        "Template-Type: ReDIF-Series 1.0",
-        f"Name: {clean(settings.series_name)}",
-        f"Provider-Name: {clean(provider_name)}",
-        f"Provider-Homepage: {clean(provider_homepage)}",
-        f"Provider-Institution: {clean(provider_institution)}",
-        f"Maintainer-Name: {clean(maintainer_name)}",
-        f"Maintainer-Email: {clean(maintainer_email)}",
-        "Type: ReDIF-Paper",
-        f"Handle: {settings.series_handle}",
-    ]
-    return "\n".join(lines) + "\n"
-
-
-# ---- working with existing files ---------------------------------------
 
 _NUMBER_RE = re.compile(r"^Number:\s*(\S+)\s*$", re.MULTILINE)
 _HANDLE_RE = re.compile(r"^Handle:\s*(\S+)\s*$", re.MULTILINE)
@@ -166,8 +126,6 @@ def valid_number(number: str) -> bool:
     return bool(_NUMBER_FORMAT.match(number or ""))
 
 
-# ---- index.html listings -------------------------------------------------
-
 def _link_html(name: str) -> str:
     return f'<li><a href="{name}">{name}</a></li>'
 
@@ -175,10 +133,9 @@ def _link_html(name: str) -> str:
 def update_index(existing: str | None, filenames: list[str], title: str) -> str:
     """Ensure a directory listing links to each of ``filenames``.
 
-    RePEc's mirroring software discovers .rdf files by following the links
-    in the directory's index.html, so every template file must be listed.
-    Existing content is preserved; missing links are inserted before the
-    closing </ul> if there is one, else before </body>, else appended.
+    RePEc's mirroring software discovers .rdf files by following the links in
+    the directory's index.html, so every template file must be listed. Existing
+    content is preserved; missing links go before the closing </ul>.
     """
     if not existing or not existing.strip():
         items = "\n".join(_link_html(n) for n in filenames)

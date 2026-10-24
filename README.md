@@ -8,9 +8,10 @@ Discussion Papers** (`RePEc:nwc:wpaper`).
 |---|---|
 | `RePEc/nwc/` | Archive and series templates (`nwcarch.rdf`, `nwcseri.rdf`) and the yearly paper files in `wpaper/` |
 | `papers/` | The PDFs, one per paper (`2026-01.pdf`, ...) |
-| `render.yaml`, `fly.toml` | Hosting configuration for the portal (Render and Fly.io) |
 | `tools/make_cover.py` | Prepends the series cover page to a paper PDF |
-| `portal/` | The submission portal: colleagues submit a paper through a form, the editor approves it by e-mail link, and the portal commits the template and PDF here and notifies Marketing & Communication. See `portal/README.md` and `portal/DEPLOY.md` |
+| `tools/wp/`, `.github/` | The submission workflow: colleagues submit through an issue form, the editor approves with a label, and GitHub Actions publish the paper here and notify Marketing & Communication. See `tools/wp/README.md` |
+
+**Submit a paper:** https://github.com/ncl-economics/ncl-economics.github.io/issues/new/choose
 
 Series pages: [IDEAS](https://ideas.repec.org/s/nwc/wpaper.html),
 [EconPapers](https://econpapers.repec.org/paper/nwcwpaper/).
