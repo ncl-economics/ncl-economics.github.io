@@ -18,12 +18,14 @@ from wp import pipeline  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _issue_body(args) -> str:
+def _issue(args) -> tuple[str, str]:
+    """The issue body and the month it was created (YYYY-MM), used as the default date."""
     if args.issue_json_env:
         data = json.loads(os.environ[args.issue_json_env])
     else:
         data = json.loads(Path(args.issue_json).read_text(encoding="utf-8"))
-    return data.get("body") or ""
+    created = (data.get("created_at") or "")[:7]
+    return data.get("body") or "", created
 
 
 def _set_outputs(values: dict[str, str]) -> None:
@@ -54,16 +56,17 @@ def main(argv: list[str] | None = None) -> int:
     if not (args.issue_json or args.issue_json_env):
         p.error("--issue-json or --issue-json-env is required")
     root = Path(args.root)
-    body = _issue_body(args)
+    body, created = _issue(args)
 
     if args.cmd == "preview":
         download = (lambda url, dest: dest.write_bytes(b"%PDF-skipped")) if args.no_pdf_check else None
-        Path(args.out).write_text(pipeline.preview_markdown(body, root, download=download),
-                                  encoding="utf-8")
+        Path(args.out).write_text(
+            pipeline.preview_markdown(body, root, download=download, default_date=created),
+            encoding="utf-8")
         return 0
 
     try:
-        result = pipeline.publish(body, root, cover=not args.no_cover)
+        result = pipeline.publish(body, root, cover=not args.no_cover, default_date=created)
     except ValueError as exc:
         print(f"::error::{exc}")
         return 1

@@ -64,19 +64,22 @@ IT gives it a licence; a plain shared mailbox cannot own forms).
 
 **The form** (forms.office.com → New form → "Newcastle Economics Discussion
 Papers: submit a paper"). Settings: *Only people in my organization can
-respond*, *Record name*. Questions, in this order, all *Text*:
+respond*, *Record name*. Five questions:
 
-| # | Question | Type / note |
+| # | Question | Type |
 |---|---|---|
 | 1 | Title | Text, required |
-| 2 | Authors | Text, **Long answer**, required. Subtitle: "One per line: Surname, First names; e-mail; affiliation; RePEc Short-ID" |
+| 2 | Authors | Text, **Long answer**, required. Subtitle: "One author per line: Surname, First names; affiliation" |
 | 3 | Abstract | Text, Long answer, required |
-| 4 | Date (YYYY-MM) | Text, required |
-| 5 | JEL codes | Text |
-| 6 | Keywords | Text |
-| 7 | Number of pages | Text |
-| 8 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; the series cover is added automatically" |
-| 9 | Notes for the editor | Text, Long answer |
+| 4 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; it is added automatically" |
+| 5 | JEL codes | Text, optional |
+
+Everything else is filled in automatically: the date is the month of
+submission, the page count comes from the PDF, the number is the next free
+one, and the responder's university e-mail is the contact. Keywords, a
+different date, e-mails or RePEc Short-IDs can be added by the editor on the
+issue when wanted (an author line also accepts `; e-mail; Short-ID` in any
+order).
 
 **The flow** (make.powerautomate.com → Create → Automated cloud flow). Every
 action below is a *Standard* connector, included in Microsoft 365.
@@ -113,35 +116,17 @@ action below is a *Standard* connector, included in Microsoft 365.
 
    <Abstract>
 
-   ### Date
-
-   <Date (YYYY-MM)>
-
    ### JEL codes
 
    <JEL codes>
-
-   ### Keywords
-
-   <Keywords>
-
-   ### Number of pages
-
-   <Number of pages>
 
    ### Paper PDF
 
    <Web URL from Create share link>
 
-   ### Paper number
-
    ### Contact e-mail
 
    <Responders' Email>
-
-   ### Notes for the editor
-
-   <Notes for the editor>
    ```
    Labels: `submission` if the action offers a labels field; otherwise leave
    it, the preview workflow adds the label.

@@ -24,7 +24,7 @@ def test_parse_authors_format():
 
 
 def test_parse_authors_reports_bad_lines():
-    authors, errors = parse_authors("Ada Lovelace; not-an-email")
+    authors, errors = parse_authors("Ada Lovelace; bad@email")
     assert len(authors) == 1 and authors[0].redif_name == "Lovelace, Ada"
     assert any("Surname, First names" in e for e in errors)
     assert any("not an e-mail" in e for e in errors)
@@ -67,3 +67,41 @@ def test_pdf_links_from_power_automate():
     assert download_url(gh) == gh
     # a GitHub attachment wins over other links in the same field
     assert find_pdf_link(f"[x.pdf]({gh}) see also https://example.org/a.pdf") == gh
+
+
+def test_author_cells_in_any_order():
+    authors, errors = parse_authors(
+        "Fusari, Francesco; Newcastle University Business School\n"
+        "Dhamija, Vedanta; vedantadhamija@outlook.com; Centre for Macroeconomics; pdh42\n"
+        "Tara, Roshni; pta7; Centre for Macroeconomics; roshni@example.org\n")
+    assert errors == []
+    a, b, c = authors
+    assert (a.workplace, a.email, a.person) == ("Newcastle University Business School", "", "")
+    assert (b.workplace, b.email, b.person) == ("Centre for Macroeconomics", "vedantadhamija@outlook.com", "pdh42")
+    assert (c.workplace, c.email, c.person) == ("Centre for Macroeconomics", "roshni@example.org", "pta7")
+
+
+MINIMAL_BODY = """### Title
+
+A minimal paper
+
+### Authors
+
+Fusari, Francesco; Newcastle University Business School
+
+### Abstract
+
+This abstract is long enough to pass the fifty character minimum check of the parser.
+
+### Paper PDF
+
+https://newcastle-my.sharepoint.com/:b:/g/personal/x/EaBc?e=1
+"""
+
+
+def test_minimal_form_defaults_the_date():
+    s = parse_submission(MINIMAL_BODY, default_date="2026-10")
+    assert s.errors == [] and s.date == "2026-10" and s.date_defaulted
+    assert s.pages is None and s.jel == "" and s.contact == ""
+    s2 = parse_submission(MINIMAL_BODY)
+    assert any("YYYY-MM" in e for e in s2.errors)

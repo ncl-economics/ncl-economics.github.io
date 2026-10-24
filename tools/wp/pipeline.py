@@ -19,6 +19,16 @@ from .redif import (Paper, append_template, existing_numbers, next_number, paper
 Downloader = Callable[[str, Path], None]
 
 
+def pdf_pages(data: bytes) -> int | None:
+    """Number of pages of a PDF, if pypdf is available (None otherwise)."""
+    try:
+        import io
+        from pypdf import PdfReader
+        return len(PdfReader(io.BytesIO(data)).pages)
+    except Exception:  # noqa: BLE001 - optional nicety
+        return None
+
+
 def read(path: Path) -> str | None:
     return path.read_text(encoding="utf-8") if path.exists() else None
 
@@ -53,8 +63,8 @@ def cover_metadata(sub: Submission, number: str) -> dict:
 
 # ---- preview ---------------------------------------------------------------
 
-def check_pdf(url: str, download: Downloader | None = None) -> str:
-    """One line for the preview saying whether the PDF link can be fetched."""
+def check_pdf(url: str, download: Downloader | None = None) -> tuple[str, int | None]:
+    """A line for the preview saying whether the PDF can be fetched, and its page count."""
     download = download or default_download
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,17 +72,20 @@ def check_pdf(url: str, download: Downloader | None = None) -> str:
             download(url, dest)
             data = dest.read_bytes()
         if data.startswith(b"%PDF"):
-            return f"PDF: fetched successfully ({len(data) / 1e6:.1f} MB)."
+            pages = pdf_pages(data)
+            pages_note = f", {pages} pages" if pages else ""
+            return f"PDF: fetched successfully ({len(data) / 1e6:.1f} MB{pages_note}).", pages
         return ("**PDF: the link does not return a PDF** (probably a sign-in page). "
-                "Before approving, edit the issue and drag the PDF file into the 'Paper PDF' box.")
+                "Before approving, edit the issue and drag the PDF file into the 'Paper PDF' box.",
+                None)
     except Exception as exc:  # noqa: BLE001 - reported, not fatal, at preview time
         return (f"**PDF: could not be fetched** ({exc}). Before approving, edit the issue and "
-                "drag the PDF file into the 'Paper PDF' box.")
+                "drag the PDF file into the 'Paper PDF' box.", None)
 
 
 def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG,
-                     download: Downloader | None = None) -> str:
-    sub = parse_submission(issue_body)
+                     download: Downloader | None = None, default_date: str = "") -> str:
+    sub = parse_submission(issue_body, default_date)
     out = ["<!-- wp-preview -->"]
     number, number_error = (assign_number(sub, root, cfg) if sub.date and not sub.errors
                             else ("", None))
@@ -84,8 +97,13 @@ def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG,
         out.append("Edit the issue (the three dots at the top right of the first comment, "
                    "then *Edit*) and this preview will update.")
         return "\n".join(out) + "\n"
+    pdf_note, pages = check_pdf(sub.pdf_url, download)
+    if pages and not sub.pages:
+        sub.pages = pages  # Length taken from the PDF when the form has no pages field
     template = paper_template(make_paper(sub, number), cfg)
-    pdf_note = check_pdf(sub.pdf_url, download)
+    if sub.date_defaulted:
+        pdf_note += (f" Date: {sub.date}, the month of submission; add a 'Date' line to the "
+                     "issue to override.")
     out += [
         f"Thank you. This will be published as **{number}** "
         f"(handle `{cfg.paper_handle(number)}`) once the editor approves it.",
@@ -163,14 +181,14 @@ def marketing_email(sub: Submission, number: str, cfg: Config = CONFIG) -> tuple
 
 
 def publish(issue_body: str, root: Path, cfg: Config = CONFIG, download: Downloader | None = None,
-            cover: bool = True) -> dict:
+            cover: bool = True, default_date: str = "") -> dict:
     """Write the RePEc record, the PDF and the index into the checkout at ``root``.
 
     Returns a result dict (number, title, urls, e-mail subject/body). Raises
     ValueError with a readable message when the submission is not publishable.
     """
     download = download or default_download
-    sub = parse_submission(issue_body)
+    sub = parse_submission(issue_body, default_date)
     if sub.errors:
         raise ValueError("The submission is not complete:\n- " + "\n- ".join(sub.errors))
     number, number_error = assign_number(sub, root, cfg)
@@ -185,10 +203,13 @@ def publish(issue_body: str, root: Path, cfg: Config = CONFIG, download: Downloa
     with tempfile.TemporaryDirectory() as tmp:
         raw = Path(tmp) / "upload.pdf"
         download(sub.pdf_url, raw)
-        if not raw.read_bytes().startswith(b"%PDF"):
+        raw_bytes = raw.read_bytes()
+        if not raw_bytes.startswith(b"%PDF"):
             raise ValueError(
                 "The PDF link did not return a PDF (a sign-in page, most likely). "
                 "Edit the issue and drag the PDF file into the 'Paper PDF' box, then approve again.")
+        if not sub.pages:
+            sub.pages = pdf_pages(raw_bytes)
         pdf_file.parent.mkdir(parents=True, exist_ok=True)
         if cover:
             add_cover(raw, pdf_file, cover_metadata(sub, number), root, cfg)

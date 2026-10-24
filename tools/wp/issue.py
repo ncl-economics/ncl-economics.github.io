@@ -69,8 +69,15 @@ def parse_fields(body: str) -> dict[str, str]:
     return out
 
 
+_SHORT_ID_RE = re.compile(r"^p[a-z]{2}\d+$")
+
+
 def parse_authors(text: str) -> tuple[list[Author], list[str]]:
-    """'Surname, First; email; affiliation; short-id' per line."""
+    """One author per line: 'Surname, First names; affiliation; e-mail; RePEc Short-ID'.
+
+    The cells after the name may come in any order: an e-mail is recognised by
+    its '@', a Short-ID by its shape (pfu123), anything else is the affiliation.
+    """
     authors, errors = [], []
     for raw in (text or "").splitlines():
         line = raw.strip().strip("-").strip()
@@ -84,12 +91,21 @@ def parse_authors(text: str) -> tuple[list[Author], list[str]]:
             errors.append(f"Author '{name}': write the name as 'Surname, First names'.")
             parts = name.split()
             last, first = (parts[-1], " ".join(parts[:-1])) if len(parts) > 1 else (name, "")
-        email = cells[1] if len(cells) > 1 else ""
-        if email and not _EMAIL_RE.match(email):
-            errors.append(f"Author '{name}': '{email}' is not an e-mail address.")
-        authors.append(Author(first=first, last=last, email=email,
-                              workplace=clean(cells[2]) if len(cells) > 2 else "",
-                              person=cells[3] if len(cells) > 3 else ""))
+        email = workplace = person = ""
+        for cell in cells[1:]:
+            if not cell:
+                continue
+            if "@" in cell:
+                if _EMAIL_RE.match(cell):
+                    email = cell
+                else:
+                    errors.append(f"Author '{name}': '{cell}' is not an e-mail address.")
+            elif _SHORT_ID_RE.match(cell):
+                person = cell
+            else:
+                workplace = clean(cell)
+        authors.append(Author(first=first, last=last, email=email, workplace=workplace,
+                              person=person))
     if not authors:
         errors.append("At least one author is required.")
     return authors, errors
@@ -108,6 +124,7 @@ class Submission:
     number: str = ""          # as requested in the form; may be empty
     contact: str = ""
     notes: str = ""
+    date_defaulted: bool = False
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -119,7 +136,9 @@ class Submission:
         return ", ".join(a.name for a in self.authors)
 
 
-def parse_submission(body: str) -> Submission:
+def parse_submission(body: str, default_date: str = "") -> Submission:
+    """``default_date`` (YYYY-MM, e.g. the month the issue was opened) is used when the
+    form has no Date field."""
     f = parse_fields(body)
     s = Submission()
     s.title = clean(f.get("title", ""))
@@ -130,7 +149,8 @@ def parse_submission(body: str) -> Submission:
     s.abstract = f.get("abstract", "").strip()
     if len(clean(s.abstract)) < 50:
         s.errors.append("The abstract is required (at least 50 characters).")
-    s.date = f.get("date", "").strip()
+    s.date = f.get("date", "").strip() or default_date
+    s.date_defaulted = not f.get("date", "").strip() and bool(default_date)
     if not re.match(r"^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$", s.date):
         s.errors.append("The date must be in the form YYYY-MM.")
     s.jel = f.get("jel", "").strip()

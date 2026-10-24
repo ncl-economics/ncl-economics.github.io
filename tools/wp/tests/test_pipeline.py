@@ -210,3 +210,33 @@ def test_default_download_adds_download_flag_for_onedrive(tmp_path, monkeypatch)
     monkeypatch.setenv("GH_TOKEN", "tok")
     pipeline.default_download("https://1drv.ms/b/s!Abc", tmp_path / "f.pdf")
     assert seen == [("https://1drv.ms/b/s!Abc?download=1", None)]  # no GitHub token sent elsewhere
+
+
+def _real_pdf(pages: int) -> bytes:
+    import io
+    from pypdf import PdfWriter
+    w = PdfWriter()
+    for _ in range(pages):
+        w.add_blank_page(width=595, height=842)
+    buf = io.BytesIO()
+    w.write(buf)
+    return buf.getvalue()
+
+
+def test_minimal_form_preview_and_publish_fill_in_date_and_pages(root):
+    from wp.tests.test_issue import MINIMAL_BODY
+    pdf = _real_pdf(7)
+
+    def download(url, dest):
+        dest.write_bytes(pdf)
+    md = pipeline.preview_markdown(MINIMAL_BODY, root, download=download, default_date="2026-10")
+    assert "7 pages" in md and "Length: 7 pages" in md
+    assert "Creation-Date: 2026-10" in md and "month of submission" in md
+    assert "Author-Name: Fusari, Francesco" in md
+    assert "Author-Workplace-Name: Newcastle University Business School" in md
+
+    result = pipeline.publish(MINIMAL_BODY, root, download=download, cover=False,
+                              default_date="2026-10")
+    assert "Length: 7 pages" in result["template"] and "Creation-Date: 2026-10" in result["template"]
+    assert "Date: October 2026" in result["email_body"]
+    assert "Contact for queries: the series editor" in result["email_body"]
