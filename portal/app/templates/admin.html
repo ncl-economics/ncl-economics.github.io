@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Submissions{% endblock %}
+{% block content %}
+<h1>All submissions</h1>
+<table class="card list">
+<thead><tr><th>Number</th><th>Title</th><th>Authors</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+<tbody>
+{% for s in subs %}
+<tr>
+  <td><code>{{ s.number }}</code></td>
+  <td>{{ s.title }}</td>
+  <td>{{ s.author_names }}</td>
+  <td>{{ s.created_at[:10] }}</td>
+  <td><span class="status {{ s.status }}">{{ s.status }}</span></td>
+  <td><a href="{{ links[s.id] }}">open</a></td>
+</tr>
+{% else %}
+<tr><td colspan="6">No submissions yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}
