@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from .config import CONFIG, Config
-from .issue import Submission, parse_submission
+from .issue import Submission, download_url, parse_submission
 from .redif import (Paper, append_template, existing_numbers, next_number, paper_template,
                     update_index)
 
@@ -53,7 +53,25 @@ def cover_metadata(sub: Submission, number: str) -> dict:
 
 # ---- preview ---------------------------------------------------------------
 
-def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG) -> str:
+def check_pdf(url: str, download: Downloader | None = None) -> str:
+    """One line for the preview saying whether the PDF link can be fetched."""
+    download = download or default_download
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "check.pdf"
+            download(url, dest)
+            data = dest.read_bytes()
+        if data.startswith(b"%PDF"):
+            return f"PDF: fetched successfully ({len(data) / 1e6:.1f} MB)."
+        return ("**PDF: the link does not return a PDF** (probably a sign-in page). "
+                "Before approving, edit the issue and drag the PDF file into the 'Paper PDF' box.")
+    except Exception as exc:  # noqa: BLE001 - reported, not fatal, at preview time
+        return (f"**PDF: could not be fetched** ({exc}). Before approving, edit the issue and "
+                "drag the PDF file into the 'Paper PDF' box.")
+
+
+def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG,
+                     download: Downloader | None = None) -> str:
     sub = parse_submission(issue_body)
     out = ["<!-- wp-preview -->"]
     number, number_error = (assign_number(sub, root, cfg) if sub.date and not sub.errors
@@ -67,6 +85,7 @@ def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG) -> str:
                    "then *Edit*) and this preview will update.")
         return "\n".join(out) + "\n"
     template = paper_template(make_paper(sub, number), cfg)
+    pdf_note = check_pdf(sub.pdf_url, download)
     out += [
         f"Thank you. This will be published as **{number}** "
         f"(handle `{cfg.paper_handle(number)}`) once the editor approves it.",
@@ -80,6 +99,8 @@ def preview_markdown(issue_body: str, root: Path, cfg: Config = CONFIG) -> str:
         f"Files: `{cfg.rdf_path(number)}` and `{cfg.pdf_path(number)}` "
         f"(cover page added automatically).",
         "",
+        pdf_note,
+        "",
         "**For the editor:** add the `approved` label or comment `/approve` to publish. "
         "To change anything first, edit the issue; the preview updates. Close the issue to reject.",
     ]
@@ -92,7 +113,9 @@ def default_download(url: str, dest: Path) -> None:
     """Fetch an issue attachment; retry with the Actions token if GitHub asks for auth."""
     headers = {"User-Agent": "wp-publish"}
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    attempts = [headers] + ([{**headers, "Authorization": f"Bearer {token}"}] if token else [])
+    url = download_url(url)
+    attempts = [headers] + ([{**headers, "Authorization": f"Bearer {token}"}]
+                            if token and "github" in url else [])
     last: Exception | None = None
     for h in attempts:
         try:
@@ -163,7 +186,9 @@ def publish(issue_body: str, root: Path, cfg: Config = CONFIG, download: Downloa
         raw = Path(tmp) / "upload.pdf"
         download(sub.pdf_url, raw)
         if not raw.read_bytes().startswith(b"%PDF"):
-            raise ValueError("The attached file is not a PDF.")
+            raise ValueError(
+                "The PDF link did not return a PDF (a sign-in page, most likely). "
+                "Edit the issue and drag the PDF file into the 'Paper PDF' box, then approve again.")
         pdf_file.parent.mkdir(parents=True, exist_ok=True)
         if cover:
             add_cover(raw, pdf_file, cover_metadata(sub, number), root, cfg)

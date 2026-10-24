@@ -22,9 +22,34 @@ FIELDS = {
 }
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-# Attachments pasted into an issue render as [name.pdf](https://github.com/user-attachments/files/..)
+# The PDF field holds either a GitHub attachment (dragged into the issue), which renders as
+# [name.pdf](https://github.com/user-attachments/files/..), or a link pasted by the
+# Power Automate flow (OneDrive / SharePoint share link, or any https link to the file).
 _ATTACHMENT_RE = re.compile(r"\((https://github\.com/user-attachments/files/[^\s)]+)\)|"
                             r"(https://github\.com/user-attachments/files/\S+)")
+_URL_RE = re.compile(r"https://[^\s<>()\[\]\"']+")
+_ONEDRIVE_HOSTS = ("1drv.ms", "-my.sharepoint.com", ".sharepoint.com", "onedrive.live.com")
+
+
+def find_pdf_link(text: str) -> str:
+    """The download link in the 'Paper PDF' field, or '' if none."""
+    m = _ATTACHMENT_RE.search(text or "")
+    if m:
+        return m.group(1) or m.group(2)
+    for url in _URL_RE.findall(text or ""):
+        return url.rstrip(".,;")
+    return ""
+
+
+def is_onedrive_link(url: str) -> bool:
+    return any(h in url for h in _ONEDRIVE_HOSTS)
+
+
+def download_url(url: str) -> str:
+    """Turn a OneDrive/SharePoint *view* share link into a direct-download link."""
+    if is_onedrive_link(url) and "download=1" not in url:
+        return url + ("&" if "?" in url else "?") + "download=1"
+    return url
 
 
 def parse_fields(body: str) -> dict[str, str]:
@@ -116,10 +141,10 @@ def parse_submission(body: str) -> Submission:
             s.pages = int(pages)
         else:
             s.errors.append("The number of pages must be a whole number.")
-    m = _ATTACHMENT_RE.search(f.get("pdf", ""))
-    s.pdf_url = (m.group(1) or m.group(2)) if m else ""
+    s.pdf_url = find_pdf_link(f.get("pdf", ""))
     if not s.pdf_url:
-        s.errors.append("No PDF attachment found: drag and drop the PDF into the 'Paper PDF' box.")
+        s.errors.append("No PDF found: drag and drop the PDF into the 'Paper PDF' box, "
+                        "or paste a link to it.")
     s.number = f.get("number", "").strip()
     if s.number and not re.match(r"^\d{4}-\d{1,4}$", s.number):
         s.errors.append("The paper number must look like 2026-02 (or be left blank).")

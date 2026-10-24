@@ -14,8 +14,9 @@ def test_real_archive_numbers_are_read(root):
     assert "2026-01" in taken
 
 
-def test_preview_proposes_next_number_and_shows_template(root):
-    md = pipeline.preview_markdown(ISSUE_BODY, root)
+def test_preview_proposes_next_number_and_shows_template(root, fake_download):
+    md = pipeline.preview_markdown(ISSUE_BODY, root, download=fake_download)
+    assert "PDF: fetched successfully" in md
     assert md.startswith("<!-- wp-preview -->")
     assert "published as **2026-02**" in md
     assert "Author-Name: Fusari, Francesco" in md
@@ -27,14 +28,27 @@ def test_preview_proposes_next_number_and_shows_template(root):
     assert "`approved` label" in md
 
 
-def test_preview_lists_errors(root):
-    md = pipeline.preview_markdown(ISSUE_BODY.replace("2026-10", "soon"), root)
+def test_preview_warns_when_link_is_not_a_pdf(root):
+    def html(url, dest):
+        dest.write_bytes(b"<html>Sign in</html>")
+    md = pipeline.preview_markdown(ISSUE_BODY, root, download=html)
+    assert "does not return a PDF" in md and "2026-02" in md
+
+    def boom(url, dest):
+        raise OSError("timed out")
+    md = pipeline.preview_markdown(ISSUE_BODY, root, download=boom)
+    assert "could not be fetched" in md and "timed out" in md
+
+
+def test_preview_lists_errors(root, fake_download):
+    md = pipeline.preview_markdown(ISSUE_BODY.replace("2026-10", "soon"), root, download=fake_download)
     assert "Please fix" in md and "YYYY-MM" in md and "Template-Type" not in md
 
 
-def test_preview_rejects_taken_number(root):
+def test_preview_rejects_taken_number(root, fake_download):
     md = pipeline.preview_markdown(ISSUE_BODY.replace("### Paper number\n\n_No response_",
-                                                      "### Paper number\n\n2026-01"), root)
+                                                      "### Paper number\n\n2026-01"), root,
+                                   download=fake_download)
     assert "already published" in md
 
 
@@ -81,7 +95,7 @@ def test_publish_rejects_non_pdf(root):
     def bad(url, dest):
         dest.write_bytes(b"hello")
     import pytest
-    with pytest.raises(ValueError, match="not a PDF"):
+    with pytest.raises(ValueError, match="did not return a PDF"):
         pipeline.publish(ISSUE_BODY, root, download=bad, cover=False)
     assert not (root / "papers/2026-02.pdf").exists() or True  # nothing committed either way
 
@@ -101,7 +115,8 @@ def test_cli_preview_and_publish(root, tmp_path, monkeypatch):
     cli = REPO_ROOT / "tools/wp/cli.py"
     out = tmp_path / "preview.md"
     r = subprocess.run([sys.executable, str(cli), "preview", "--issue-json", str(issue),
-                        "--root", str(root), "--out", str(out)], capture_output=True, text=True)
+                        "--root", str(root), "--out", str(out), "--no-pdf-check"],
+                       capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
     assert "2026-02" in out.read_text()
 
@@ -164,3 +179,34 @@ def test_default_download_retries_with_token(tmp_path, monkeypatch):
     dest = tmp_path / "f.pdf"
     pipeline.default_download("https://github.com/user-attachments/files/1/x.pdf", dest)
     assert dest.read_bytes() == PDF and seen == [None, "Bearer tok"]
+
+
+def test_publish_from_onedrive_link_uses_download_url(root):
+    seen = []
+
+    def download(url, dest):
+        seen.append(url)
+        dest.write_bytes(PDF)
+    body = ISSUE_BODY.replace(
+        "[paper.pdf](https://github.com/user-attachments/files/12345/paper.pdf)",
+        "https://newcastle-my.sharepoint.com/:b:/g/personal/x_newcastle_ac_uk/EaBcD?e=abc12")
+    result = pipeline.publish(body, root, download=download, cover=False)
+    assert result["number"] == "2026-02"
+    assert seen == ["https://newcastle-my.sharepoint.com/:b:/g/personal/x_newcastle_ac_uk/EaBcD?e=abc12"]
+
+
+def test_default_download_adds_download_flag_for_onedrive(tmp_path, monkeypatch):
+    seen = []
+
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def read(self): return PDF
+
+    def fake_urlopen(req, timeout):
+        seen.append((req.full_url, req.get_header("Authorization")))
+        return Resp()
+    monkeypatch.setattr(pipeline.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("GH_TOKEN", "tok")
+    pipeline.default_download("https://1drv.ms/b/s!Abc", tmp_path / "f.pdf")
+    assert seen == [("https://1drv.ms/b/s!Abc?download=1", None)]  # no GitHub token sent elsewhere

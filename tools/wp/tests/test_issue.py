@@ -44,10 +44,26 @@ def test_parse_submission_errors():
     body = body.replace("### Title\n\nHigh-Frequency Identification of UK Monetary Policy Shocks", "### Title\n\n")
     s = parse_submission(body)
     joined = " ".join(s.errors)
-    assert "title is required" in joined and "YYYY-MM" in joined and "No PDF attachment" in joined
+    assert "title is required" in joined and "YYYY-MM" in joined and "No PDF found" in joined
 
 
 def test_bare_attachment_url_is_accepted():
     body = ISSUE_BODY.replace("[paper.pdf](https://github.com/user-attachments/files/12345/paper.pdf)",
                               "https://github.com/user-attachments/files/999/x.pdf")
     assert parse_submission(body).pdf_url == "https://github.com/user-attachments/files/999/x.pdf"
+
+
+def test_pdf_links_from_power_automate():
+    from wp.issue import download_url, find_pdf_link, is_onedrive_link
+    share = "https://newcastle-my.sharepoint.com/:b:/g/personal/nxx123_newcastle_ac_uk/EaBcDeF?e=Xy1z"
+    assert find_pdf_link(share) == share
+    assert find_pdf_link(f"Here is the file: {share}.") == share
+    assert find_pdf_link("Drop the PDF file here.") == ""
+    assert is_onedrive_link(share) and is_onedrive_link("https://1drv.ms/b/s!x")
+    assert download_url(share) == share + "&download=1"
+    assert download_url("https://1drv.ms/b/s!x") == "https://1drv.ms/b/s!x?download=1"
+    assert download_url(share + "&download=1") == share + "&download=1"
+    gh = "https://github.com/user-attachments/files/1/x.pdf"
+    assert download_url(gh) == gh
+    # a GitHub attachment wins over other links in the same field
+    assert find_pdf_link(f"[x.pdf]({gh}) see also https://example.org/a.pdf") == gh

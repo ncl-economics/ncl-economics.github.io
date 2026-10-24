@@ -13,7 +13,7 @@ concurrency:
 jobs:
   publish:
     if: >-
-      contains(github.event.issue.labels.*.name, 'submission') &&
+      (contains(github.event.issue.labels.*.name, 'submission') || startsWith(github.event.issue.title, '[WP]')) &&
       !contains(github.event.issue.labels.*.name, 'published') &&
       (
         (github.event_name == 'issues' && github.event.label.name == 'approved') ||
@@ -41,6 +41,8 @@ jobs:
         run: gh api "repos/$REPO/issues/$NUMBER" > issue.json
       - name: Build the RePEc record, the PDF with cover, and the e-mail
         id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 tools/wp/cli.py publish --issue-json issue.json --result wp-result.json --email wp-email.txt
       - name: Commit and push to the archive
         run: |
@@ -54,9 +56,9 @@ jobs:
         if: env.MAIL_USERNAME != ''
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.MAIL_SERVER || 'smtp.gmail.com' }}
-          server_port: ${{ secrets.MAIL_PORT || 465 }}
-          secure: true
+          server_address: ${{ secrets.MAIL_SERVER || 'smtp.office365.com' }}
+          server_port: ${{ secrets.MAIL_PORT || 587 }}
+          secure: ${{ secrets.MAIL_PORT == '465' }}
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           from: Newcastle Economics Discussion Papers <${{ secrets.MAIL_USERNAME }}>

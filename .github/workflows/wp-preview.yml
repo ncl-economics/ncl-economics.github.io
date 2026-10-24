@@ -11,7 +11,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   preview:
-    if: contains(github.event.issue.labels.*.name, 'submission') && !contains(github.event.issue.labels.*.name, 'published')
+    if: >-
+      (contains(github.event.issue.labels.*.name, 'submission') || startsWith(github.event.issue.title, '[WP]')) &&
+      !contains(github.event.issue.labels.*.name, 'published')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +24,10 @@ jobs:
         env:
           ISSUE_JSON: ${{ toJSON(github.event.issue) }}
         run: python3 tools/wp/cli.py preview --issue-json-env ISSUE_JSON --out wp-preview.md
+      - name: Label the issue as a submission
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh issue edit "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --add-label submission
       - name: Post or update the preview comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,13 +1,15 @@
 # Working paper submissions (zero-cost, runs on GitHub)
 
-Colleagues submit a paper through a GitHub issue form. GitHub Actions turn
-it into the RePEc record, add the series cover page, commit the files to this
-repository (which is the live archive) and e-mail Marketing & Communication.
-Nothing is hosted and nothing is paid for: Actions are free on public
-repositories.
+Colleagues submit a paper through a Microsoft Forms form with their
+university account. A Power Automate flow (included in Microsoft 365) files
+it as a GitHub issue; GitHub Actions turn it into the RePEc record, add the
+series cover page, commit the files to this repository (which is the live
+archive) and e-mail Marketing & Communication. Nothing is hosted and nothing
+is paid for: Actions are free on public repositories.
 
 ```
-colleague ─── issue form ───▶ issue #N  ──▶ bot comment: RePEc record preview
+colleague ─── Microsoft Forms ──▶ Power Automate ──▶ GitHub issue #N ──▶ bot comment: RePEc record preview
+             (or the GitHub issue form directly)
                                    │
           editor adds label "approved" (or comments /approve, also by e-mail reply)
                                    │
@@ -20,21 +22,25 @@ colleague ─── issue form ───▶ issue #N  ──▶ bot comment: ReP
 
 ## For colleagues: submitting a paper
 
-1. Open **https://github.com/ncl-economics/ncl-economics.github.io/issues/new/choose**
-   and pick *Submit a working paper*. A free GitHub account is needed.
-2. Fill in the form. Authors go one per line as
-   `Surname, First names; e-mail; affiliation; RePEc Short-ID`.
-   Drag the PDF (without a cover page) into the *Paper PDF* box.
-3. Submit. Within a minute a comment shows the RePEc record that will be
-   published and the paper number. If something is wrong, edit the issue
-   (three dots on the first comment, *Edit*); the preview updates.
-4. The editor approves. The issue is closed with the links to the PDF, IDEAS
-   and EconPapers.
+Colleagues fill in a **Microsoft Forms** form with their university account
+(no GitHub account needed). A Power Automate flow files the submission in
+GitHub as an issue, and the rest is automatic. See *Microsoft Forms front
+door* below for the one-time setup of the form and the flow.
+
+Anyone with a GitHub account can also use the GitHub form directly:
+https://github.com/ncl-economics/ncl-economics.github.io/issues/new?template=working-paper.yml
+
+Either way, within a minute a comment under the issue shows the RePEc record
+that will be published, the paper number, and whether the PDF could be
+fetched. If something is wrong, the editor edits the issue (three dots on
+the first comment, *Edit*) and the preview updates.
 
 ## For the editor: approving
 
-You get GitHub's e-mail for every new issue and for the preview comment.
-Check the preview, then either add the **approved** label on the issue, or
+You get an e-mail for every new submission (from the flow, and from GitHub
+if you watch the repository). Open the issue, check the preview comment
+(record, number, and whether the PDF was fetched), then either add the
+**approved** label on the issue, or
 comment `/approve` (replying to the notification e-mail with `/approve` works
 too). To change the number or any field first, edit the issue. To reject,
 close the issue with a comment.
@@ -45,21 +51,129 @@ gets a comment linking to the log; fix the fields and re-add the label.
 
 ## One-time setup
 
-1. **Merge this branch into `main`.** Issue forms and workflows only work from
-   the default branch.
-2. **Labels**: `submission`, `approved`, `published` (created already; see
-   *Issues → Labels*).
-3. **E-mail to Marketing & Communication** (optional but recommended). In
-   *Settings → Secrets and variables → Actions*:
-   - Secrets `MAIL_USERNAME` and `MAIL_PASSWORD`: a Gmail address and an
-     [app password](https://myaccount.google.com/apppasswords) (needs 2-step
-     verification on that Google account). Any other SMTP server works with
-     the extra secrets `MAIL_SERVER` and `MAIL_PORT` (SSL port, e.g. 465).
-   - Variables `MARKETING_EMAILS` (comma-separated) and `ADMIN_EMAIL` (cc).
-   Without these the closing comment on the issue contains the ready-to-send
-   e-mail text for you to forward.
-4. **Share the form link** with colleagues (step 1 above). It can go on the
-   group's web page or a Google Site as a button.
+### 1. Labels and workflows
+
+Labels `submission`, `approved`, `published` exist on the repository and the
+workflows run from `main`. Nothing to do.
+
+### 2. Microsoft Forms front door
+
+Build this once, signed in as the account that will own the form and the
+flow (your own account, or a full account for econ.media@newcastle.ac.uk if
+IT gives it a licence; a plain shared mailbox cannot own forms).
+
+**The form** (forms.office.com → New form → "Newcastle Economics Discussion
+Papers: submit a paper"). Settings: *Only people in my organization can
+respond*, *Record name*. Questions, in this order, all *Text*:
+
+| # | Question | Type / note |
+|---|---|---|
+| 1 | Title | Text, required |
+| 2 | Authors | Text, **Long answer**, required. Subtitle: "One per line: Surname, First names; e-mail; affiliation; RePEc Short-ID" |
+| 3 | Abstract | Text, Long answer, required |
+| 4 | Date (YYYY-MM) | Text, required |
+| 5 | JEL codes | Text |
+| 6 | Keywords | Text |
+| 7 | Number of pages | Text |
+| 8 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; the series cover is added automatically" |
+| 9 | Notes for the editor | Text, Long answer |
+
+**The flow** (make.powerautomate.com → Create → Automated cloud flow). Every
+action below is a *Standard* connector, included in Microsoft 365.
+
+1. Trigger **Microsoft Forms: When a new response is submitted**. Form: the one above.
+2. **Microsoft Forms: Get response details**. Form: same. Response Id: *Response Id* from the trigger.
+3. **Parse JSON**. Content: the *Paper PDF* answer from step 2. Schema:
+   ```json
+   {"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"link":{"type":"string"},"id":{"type":"string"},"type":{},"size":{"type":"integer"},"referenceId":{"type":"string"},"driveId":{"type":"string"},"status":{"type":"integer"},"uploadSessionUrl":{}},"required":["name","id"]}}
+   ```
+4. **OneDrive for Business: Create share link**. File: `id` from step 3
+   (Power Automate wraps this in *Apply to each*, which is fine). Link type:
+   **View**. Link scope: **Anonymous**. This gives a link the publishing step
+   can download without signing in. If "Anonymous" is refused by the
+   university's sharing policy, pick *Organization* instead: the issue is
+   still created, and the editor then drags the PDF into the issue before
+   approving (the preview comment says when this is needed).
+5. **GitHub: Create an issue**. Sign in with the GitHub account that will
+   appear as the submitter (your own). Repository owner `ncl-economics`,
+   repository `ncl-economics.github.io`. Title:
+   `[WP] ` followed by the *Title* answer. Body: paste the block below and
+   replace each `<...>` with the matching answer from step 2 (and the *Web URL*
+   from step 4). Keep the `###` lines and the blank lines exactly.
+   ```
+   ### Title
+
+   <Title>
+
+   ### Authors
+
+   <Authors>
+
+   ### Abstract
+
+   <Abstract>
+
+   ### Date
+
+   <Date (YYYY-MM)>
+
+   ### JEL codes
+
+   <JEL codes>
+
+   ### Keywords
+
+   <Keywords>
+
+   ### Number of pages
+
+   <Number of pages>
+
+   ### Paper PDF
+
+   <Web URL from Create share link>
+
+   ### Paper number
+
+   ### Contact e-mail
+
+   <Responders' Email>
+
+   ### Notes for the editor
+
+   <Notes for the editor>
+   ```
+   Labels: `submission` if the action offers a labels field; otherwise leave
+   it, the preview workflow adds the label.
+6. **Office 365 Outlook: Send an email (V2)**, so the editor hears about it
+   from the shared mailbox rather than from GitHub. To: `econ.media@newcastle.ac.uk`
+   (and yourself). Subject: `New working paper submission: ` + *Title*. Body:
+   "Review and approve here: " + *HTML URL* from step 5 (the issue link),
+   plus the title and the responder's e-mail. To send *from* econ.media, the
+   flow owner needs *Send as* rights on that mailbox; otherwise send from your
+   own address.
+7. Save, then submit a test response to the form. A `[WP]` issue appears in
+   the repository with the preview comment under it.
+
+### 3. E-mail to Marketing & Communication
+
+The publishing workflow sends the hand-over e-mail itself when these are set
+in *Settings → Secrets and variables → Actions*:
+
+- Secrets `MAIL_USERNAME` and `MAIL_PASSWORD`: a Microsoft 365 mailbox with
+  **Authenticated SMTP** enabled (ask IT to enable it for
+  econ.media@newcastle.ac.uk and set a password; defaults are
+  `smtp.office365.com`, port 587). Any other SMTP server works with the
+  extra secrets `MAIL_SERVER` and `MAIL_PORT`.
+- Variables `MARKETING_EMAILS` (comma-separated) and `ADMIN_EMAIL` (cc).
+
+Until IT enables SMTP, the closing comment on each published issue contains
+the ready-to-send e-mail text with the PDF link; forward it from Outlook.
+
+### 4. Share the form
+
+Put the Microsoft Forms link on the group's web page, in the group's Teams
+channel, or on a Google Site as a button.
 
 ## Layout and tests
 

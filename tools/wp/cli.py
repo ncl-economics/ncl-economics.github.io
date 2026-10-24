@@ -45,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         c.add_argument("--issue-json-env", help="environment variable holding the issue JSON")
         c.add_argument("--root", default=str(ROOT), help="repository root (default: this repo)")
     sp.choices["preview"].add_argument("--out", required=True)
+    sp.choices["preview"].add_argument("--no-pdf-check", action="store_true",
+                                       help="do not try to fetch the PDF link")
     sp.choices["publish"].add_argument("--result", required=True)
     sp.choices["publish"].add_argument("--email", required=True)
     sp.choices["publish"].add_argument("--no-cover", action="store_true")
@@ -55,7 +57,9 @@ def main(argv: list[str] | None = None) -> int:
     body = _issue_body(args)
 
     if args.cmd == "preview":
-        Path(args.out).write_text(pipeline.preview_markdown(body, root), encoding="utf-8")
+        download = (lambda url, dest: dest.write_bytes(b"%PDF-skipped")) if args.no_pdf_check else None
+        Path(args.out).write_text(pipeline.preview_markdown(body, root, download=download),
+                                  encoding="utf-8")
         return 0
 
     try:
