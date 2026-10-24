@@ -71,7 +71,7 @@ respond*, *Record name*. Six questions:
 | 1 | Title | Text, required |
 | 2 | Author names | Text, **Long answer**, required. Subtitle: "One per line, in the order on the paper: Surname, First names" |
 | 3 | Author e-mails | Text, Long answer. Subtitle: "One per line, same order as the names (leave a line blank to skip an author)" |
-| 4 | Affiliations | Text, Long answer, required. Subtitle: "One per line, same order as the names; one line if it is the same for everyone" |
+| 4 | Author affiliations | Text, Long answer, required. Subtitle: "One per line, same order as the names; one line if it is the same for everyone" |
 | 5 | Abstract | Text, Long answer, required |
 | 6 | Paper PDF | **File upload**, PDF only, 1 file, required. Subtitle: "Without a cover page; it is added automatically" |
 
@@ -116,9 +116,9 @@ action below is a *Standard* connector, included in Microsoft 365.
 
    <Author e-mails>
 
-   ### Affiliations
+   ### Author affiliations
 
-   <Affiliations>
+   <Author affiliations>
 
    ### Abstract
 

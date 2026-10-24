@@ -13,6 +13,7 @@ FIELDS = {
     "Author names": "author_names",
     "Author e-mails": "author_emails",
     "Affiliations": "affiliations",
+    "Author affiliations": "affiliations",
     "Abstract": "abstract",
     "Date": "date",
     "JEL codes": "jel",

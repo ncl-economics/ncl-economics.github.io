@@ -159,3 +159,9 @@ def test_three_boxes_single_affiliation_applies_to_all_and_errors():
     authors, errors = parse_author_boxes("Francesco Fusari", "not-an-email", "")
     assert authors[0].redif_name == "Fusari, Francesco" and authors[0].email == ""
     assert any("Surname, First names" in e for e in errors) and any("not an e-mail" in e for e in errors)
+
+
+def test_author_affiliations_label_is_accepted():
+    s = parse_submission(THREE_BOX_BODY.replace("### Affiliations", "### Author affiliations"),
+                         default_date="2026-10")
+    assert s.errors == [] and s.authors[1].workplace == "Newcastle University Business School"
