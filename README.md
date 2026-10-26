@@ -22,6 +22,8 @@ https://www.ncl.ac.uk/business/research/groups/economics/discussion-papers/
 
 ```
 .nojekyll                      tells GitHub Pages to serve files as they are
+index.html                     forwards visitors of the root address to the university page
+robots.txt                     asks search engines not to index this site (RePEc is unaffected)
 RePEc/nwc/
   nwcarch.rdf                  archive template (ReDIF-Archive): who we are, where the files live
   nwcseri.rdf                  series template (ReDIF-Series): the discussion paper series
