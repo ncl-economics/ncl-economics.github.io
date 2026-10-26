@@ -1,9 +1,10 @@
 # Newcastle Economics Discussion Papers – RePEc archive
 
 This repository is the RePEc archive of the **Economics Subject Group,
-Newcastle University Business School**. It is served as a website by GitHub
-Pages at https://ncl-economics.github.io, and RePEc's services (IDEAS,
-EconPapers, NEP, CitEc, the RePEc Author Service) mirror it from there.
+Newcastle University Business School**. It is served by GitHub Pages at
+https://ncl-economics.github.io, where RePEc's services (IDEAS, EconPapers,
+NEP, CitEc, the RePEc Author Service) mirror it from, and where a small
+public website lists the papers with Google Scholar metadata.
 
 | | |
 |---|---|
@@ -28,8 +29,13 @@ RePEc/nwc/
     index.html                 directory listing RePEc follows to find the yearly files
 papers/
   2026-01.pdf                  the papers, one PDF per number, cover page included
+  2026-01.html                 landing page per paper, generated (Google Scholar meta tags)
+index.html                     series home page, generated
+sitemap.xml, robots.txt        for search engines, generated
 tools/
   make_cover.py                prepends the series cover page to a paper PDF
+  build_site.py                generates index.html, papers/*.html, sitemap.xml, robots.txt
+                               from the .rdf records
   ncl-logo-white.png, ncl-logo.jpg
 ```
 
@@ -73,7 +79,13 @@ links there. Every `.rdf` file must therefore be linked from the
    by field, uses the JEL codes to route them.
 4. **New year.** The first paper of a year goes in a new file
    `nwcYYYY.rdf`; add a line for it to `RePEc/nwc/wpaper/index.html`.
-5. **Commit and push to `main`.** GitHub Pages republishes within about a
+5. **Website.** Regenerate the public pages from the records:
+   ```bash
+   python3 tools/build_site.py
+   ```
+   This rewrites `index.html`, `papers/<number>.html`, `sitemap.xml` and
+   `robots.txt`; do not edit those by hand. Nothing in `RePEc/` is touched.
+6. **Commit and push to `main`.** GitHub Pages republishes within about a
    minute. IDEAS and EconPapers fetch the archive on their own schedule,
    usually overnight, so the paper's pages appear one or two days later at
    `https://ideas.repec.org/p/nwc/wpaper/2026-02.html` and
@@ -81,8 +93,9 @@ links there. Every `.rdf` file must therefore be linked from the
 
 After the pages are live, authors can claim the paper in the
 [RePEc Author Service](https://authors.repec.org) so it shows on their
-profiles. Google Scholar picks up IDEAS and EconPapers pages, which link to
-the PDF here.
+profiles. Google Scholar indexes the papers two ways: through the IDEAS and
+EconPapers pages, and directly from the landing pages here, which carry
+`citation_*` meta tags and are listed in `sitemap.xml`.
 
 ## Checking the archive
 
