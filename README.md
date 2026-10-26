@@ -99,9 +99,15 @@ EconPapers pages, and directly from the landing pages here, which carry
 
 ## Checking the archive
 
-- RePEc's syntax checker: https://ideas.repec.org/cgi-bin/rrdcheck.pl?handle=RePEc:nwc
-- IDEAS mirroring log: https://ideas.repec.org/n/checker/ (archive `nwc`)
-- Series on EconPapers appears after the first successful mirroring run.
+- EconPapers data check, which shows what EconPapers last read from the
+  archive and any errors in the records: https://econpapers.repec.org/check/
+  (choose `nwc`).
+- The series pages themselves: https://ideas.repec.org/s/nwc/wpaper.html and
+  https://econpapers.repec.org/paper/nwcwpaper/. A paper appears there one or
+  two days after it is pushed.
+- The files as RePEc sees them: https://ncl-economics.github.io/RePEc/nwc/
+  and https://ncl-economics.github.io/RePEc/nwc/wpaper/. If a link in those
+  listings is broken, RePEc cannot find the file.
 
 ## Contact
 
