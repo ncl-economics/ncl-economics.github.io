@@ -9,11 +9,12 @@ from playwright.sync_api import sync_playwright
 import pypdf
 
 PAPER = dict(
-    title="Fiscal anticipation and inequality: the role of the monetary-fiscal mix",
-    authors=[("Vedanta Dhamija", "Centre for Macroeconomics"),
-             ("Francesco Fusari", "Newcastle University Business School"),
-             ("Roshni Tara", "Centre for Macroeconomics")],
-    number="2026-01",
+    title="The Resilience and Reinforcement of Group Cohesion in the Face of Economic Inequality",
+    authors=[("Jan Jozwik", "School of Economics, University of Nottingham Ningbo China"),
+             ("Tom Lane", "Newcastle University Business School"),
+             ("Lina Song", "Nottingham University Business School"),
+             ("Fan Zhang", "Independent researcher")],
+    number="2026-02",
     date="October 2026",
 )
 
@@ -43,14 +44,14 @@ html, body {{ width:{w_pt}pt; height:{h_pt}pt; background:#fff; color:#051435; f
 .panel {{ position:absolute; inset:0;
   clip-path: polygon(71% 0, 100% 0, 100% 100%, 42% 100%);
   background: linear-gradient(160deg, #29b7ea 0%, #0073bc 40%, #003a65 72%, #051435 100%); }}
-.brand {{ position:absolute; right:66pt; top:610pt; color:#fff; }}
+.brand {{ position:absolute; right:66pt; top:{h_pt*0.77:.0f}pt; color:#fff; }}
 .logo {{ display:block; width:158pt; height:auto; }}
 .logo.ph {{ height:37pt; border:1pt dashed rgba(255,255,255,.7); font-size:8pt; line-height:1.3;
   display:flex; align-items:center; justify-content:center; text-align:center; }}
 .brand .unit {{ font-size:8.5pt; font-weight:600; margin-top:5pt; }}
 .title {{ position:absolute; left:56pt; top:100pt; width:330pt; text-wrap:balance;
   font-family:'Latin Modern Roman','LM Roman 10',serif; font-weight:700; font-size:18pt; line-height:1.28; color:#051435; }}
-.meta {{ position:absolute; left:56pt; top:248pt; width:260pt; font-size:11pt; line-height:1.4; }}
+.meta {{ position:absolute; left:56pt; top:248pt; width:292pt; font-size:11pt; line-height:1.4; }}
 .meta .au {{ margin-bottom:9pt; }}
 .meta .n {{ font-size:12pt; font-weight:500; }}
 .meta .af {{ font-size:9.5pt; color:#4a5670; }}
